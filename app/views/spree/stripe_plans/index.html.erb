@@ -1,0 +1,77 @@
+<div class="container">
+  <div class="row my-5">
+    <div class="col-12 text-center">
+      <h2><%= I18n.t('spree_stripe_subscriptions.plans') %></h2>
+    </div>
+  </div>
+  <hr/>
+  <div class="row my-5">
+    <% @stripe_plans.each do |plan| %>
+      <div class="col-sm-12 py-4">
+        <div class="card text-center">
+          <div class="card-body">
+            <h5 class="card-title"><%= plan.name %></h5>
+            <p class="card-text">
+              <%= number_to_currency(plan.amount, precision: 2) %> /
+              <%= plan.interval_count %> <%= plan.interval.pluralize(plan.interval_count) %> <br/>
+              <%= plan.trial_period_days %> <%= 'day'.pluralize(plan.trial_period_days) %> trial
+            </p>
+            <% if spree_current_user %>
+              <% if @active_subscription.present? && @active_subscription.plan_id == plan.id %>
+                <% if @active_subscription.cancel_at_period_end %>
+                  <p class="card-text">
+                    Your subscription ends on <%= @active_subscription.cancel_at %>
+                  </p>
+                <% else %>
+                  <%= button_link_to I18n.t('spree_stripe_subscriptions.cancel_renewal'),
+                                     stripe_plan_stripe_subscription_url(plan, @active_subscription),
+                                     method: :patch, class: 'btn btn-primary btn-danger',
+                                     confirm: "Do you want to cancel renewal?" %>
+                  <br/>
+                <% end %>
+                <%= button_link_to I18n.t('spree_stripe_subscriptions.unsubscribe'),
+                                   stripe_plan_stripe_subscription_url(plan, @active_subscription),
+                                   method: :delete, class: 'btn btn-primary btn-danger',
+                                   confirm: "Do you want to unsubscribe?" %>
+                <br/>
+                <%= button_link_to I18n.t('spree_stripe_subscriptions.update_payment_method'),
+                                   change_payment_details_stripe_plan_stripe_subscription_url(plan, @active_subscription),
+                                   method: :post, class: 'btn btn-primary btn-danger' %>
+              <% elsif @active_subscription.present? && @active_subscription.next_plan_id == plan.id %>
+                <p class="card-text">
+                  Your next subscription starts on <%= @active_subscription.current_period_end %>
+                </p>
+              <% else %>
+                <% if @active_subscription.present? %>
+                  <%
+                    action_type = if @active_subscription.plan.weightage < plan.weightage
+                                    :upgrade
+                                  else
+                                    :downgrade
+                                  end
+                    action_url = if action_type == :upgrade
+                                   stripe_plan_stripe_subscriptions_url(plan)
+                                 else
+                                   downgrade_stripe_plan_stripe_subscription_url(plan, @active_subscription)
+                                 end
+                  %>
+                  <%= button_link_to I18n.t("spree_stripe_subscriptions.#{action_type}"),
+                                     action_url,
+                                     method: :post,
+                                     class: 'btn btn-primary btn-default' %>
+                <% else %>
+                  <%= button_link_to I18n.t('spree_stripe_subscriptions.subscribe'),
+                                     stripe_plan_stripe_subscriptions_url(plan),
+                                     method: :post,
+                                     class: 'btn btn-primary btn-default' %>
+                <% end %>
+              <% end %>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+
